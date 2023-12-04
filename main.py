@@ -2,6 +2,60 @@ import functions_framework
 import os
 from openai import OpenAI
 import json
+from flask import abort, jsonify
+from linebot import (
+    LineBotApi, WebhookHandler
+)
+from linebot.exceptions import (
+    InvalidSignatureError
+)
+from linebot.models import (
+    MessageEvent, TextMessage, TextSendMessage
+)
+
+LINE_CHANNEL_SECRET = os.environ.get("LINE_CHANNEL_SECRET", "Specified environment variable is not set.")
+LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "Specified environment variable is not set.")
+
+line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
+handler = WebhookHandler(LINE_CHANNEL_SECRET)
+
+@functions_framework.http
+def main(request):
+   
+    signature = request.headers['X-Line-Signature']
+
+    body = request.get_data(as_text=True)
+
+    try:
+        handler.handle(body, signature)
+    except InvalidSignatureError:
+        abort(400)
+ 
+    return 'OK'
+
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+
+    # openai.api_key = "GTP-3のAPIKEYはここ。"
+
+    # response = openai.Completion.create(
+    #     model="text-davinci-003",
+    #     prompt=event.message.text,
+    #     temperature=0.9,
+    #     max_tokens=150,
+    #     top_p=1,
+    #     frequency_penalty=0.0,
+    #     presence_penalty=0.6,
+    #     stop=[" Human:", " AI:"]
+    # )
+
+    # line_bot_api.reply_message(
+    #     event.reply_token,
+    #     TextSendMessage(text=response['choices'][0]['text'].strip()))
+
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text='test'))
 
 @functions_framework.http
 def hello_http(request):
@@ -27,7 +81,7 @@ def hello_http(request):
         model="gpt-3.5-turbo",
     )
     print(f'RESPONSE:{response}')
-    return response.choices[0].message.content
+    return f'ver.0.0.1:{response.choices[0].message.content}'
 
     # response = openai.ChatCompletion.create(
     #     model="gpt-4",
