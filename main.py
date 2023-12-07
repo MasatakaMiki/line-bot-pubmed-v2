@@ -36,26 +36,29 @@ def main(request):
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
 
-    # openai.api_key = "GTP-3のAPIKEYはここ。"
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", "Specified environment variable is not set."))
 
-    # response = openai.Completion.create(
-    #     model="text-davinci-003",
-    #     prompt=event.message.text,
-    #     temperature=0.9,
-    #     max_tokens=150,
-    #     top_p=1,
-    #     frequency_penalty=0.0,
-    #     presence_penalty=0.6,
-    #     stop=[" Human:", " AI:"]
-    # )
+    prompt = event.message.text
 
-    # line_bot_api.reply_message(
-    #     event.reply_token,
-    #     TextSendMessage(text=response['choices'][0]['text'].strip()))
+    response = client.chat.completions.create(
+        messages=[
+            {
+                "role": "system",
+                "content": "受け取った言語で返答をしてください。",
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+        # model="gpt-3.5-turbo",
+        model="gpt-4-1106-preview",
+    )
+    print(f'RESPONSE:{response}')
 
     line_bot_api.reply_message(
         event.reply_token,
-        TextSendMessage(text='test'))
+        TextSendMessage(text=response.choices[0].message.content))
 
 @functions_framework.http
 def hello_http(request):
@@ -82,14 +85,6 @@ def hello_http(request):
     )
     print(f'RESPONSE:{response}')
     return f'ver.0.0.1:{response.choices[0].message.content}'
-
-    # response = openai.ChatCompletion.create(
-    #     model="gpt-4",
-    #     messages=[
-    #         {"role": "system", "content": "日本語で文章が提供されるので英語に翻訳してください。"},
-    #         {"role": "user", "content": "私は今日とても幸せです。"}
-    #     ]
-    # )
 
     # if request.args and 'message' in request.args:
     #     return request.args.get('message')
