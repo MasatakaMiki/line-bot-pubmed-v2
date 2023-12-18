@@ -48,14 +48,33 @@ def sending_pubmed(cloud_event):
     # print(base64.b64decode(cloud_event.data["message"]["data"]))
     
     # PubMed
+    pubmed_pubtypes = ["Journal Article-aaa", "Books and Documents", "Clinical Trial", "Meta-Analysis", "Randomized Controlled Trial", "Review", "Systematic Review"]
     pubmed_results = search_articles(keyword="periodontal")
     print(pubmed_results)
+    index = 0
+    paper_title = ""
+    paper_abstract = ""
+    paper_uri = ""
     for pmid in pubmed_results["IdList"]:
+        index += 1
+        print(index)
         # print(pmid)
         summary = get_summary(pmid)
         print(summary)
         article = fetch_article(pmid)
         print(article)
+        # check pubmed-pubtype
+        print(summary[0]['PubTypeList'])
+        if not set(summary[0]['PubTypeList']).isdisjoint(pubmed_pubtypes):
+            paper_title = article['MedlineCitation']['Article']['ArticleTitle']
+            paper_abstract = article['MedlineCitation']['Article']['Abstract']['AbstractText'][0]
+            paper_uri = "https://pubmed.ncbi.nlm.nih.gov/{0}/".format(pmid)
+            break
+    # print(index)
+
+    if index == 0:
+        line_bot_api.broadcast(TextSendMessage(text='本日の新着論文はありません'))
+        return
 
     f = open('message.json', 'r')
     flex_message_json_dict = json.load(f)
@@ -63,9 +82,9 @@ def sending_pubmed(cloud_event):
     # print(flex_message_json_dict["body"]["contents"][1]["contents"][0]["contents"][0]["text"])
     # print(flex_message_json_dict["footer"]["contents"][0]["action"]["uri"])
 
-    flex_message_json_dict["body"]["contents"][0]["text"] = "論文のタイトルです"
-    flex_message_json_dict["body"]["contents"][1]["contents"][0]["contents"][0]["text"] = "ここに論文のタイトルが入ります\n\nあいうえおアイウエオ\n1234567890"
-    flex_message_json_dict["footer"]["contents"][0]["action"]["uri"] = "https://google.com/"
+    flex_message_json_dict["body"]["contents"][0]["text"] = paper_title
+    flex_message_json_dict["body"]["contents"][1]["contents"][0]["contents"][0]["text"] = paper_abstract
+    flex_message_json_dict["footer"]["contents"][0]["action"]["uri"] = paper_uri
 
     # line_bot_api.broadcast(TextSendMessage(text='Hello World!'))
     line_bot_api.broadcast(FlexSendMessage(contents=flex_message_json_dict, alt_text="論文検索結果"))
